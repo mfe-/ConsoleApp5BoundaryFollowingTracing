@@ -8,4 +8,18 @@
     <LangVersion>10</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Acer_Campestre_01.ab.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Acer_Campestre_01.ab.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
+  </ItemGroup>
+
 </Project>
