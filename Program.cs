@@ -15,12 +15,12 @@ var bytes = await File.ReadAllBytesAsync("Acer_Campestre_01.ab.jpg");
 using var image = await Image.LoadAsync<Rgba32>(new MemoryStream(bytes));
 
 var contour = BoundaryProcessingTraceAsync(image);
-contour.SaveAsJpeg("Acer_Campestre_01_BoundaryProcessingTrace.ab.jpg");
+contour.SaveAsPng("Acer_Campestre_01_BoundaryProcessingTrace.ab.png");
 
 
 Image<Rgba32> BoundaryProcessingTraceAsync(Image<Rgba32> image)
 {
-    var cp = image.Clone();
+    var cp = new Image<Rgba32>(image.Width,image.Height,new Rgba32(0,0,0,0));
     Point? initb0 = null;
     Rgba32 color = new Rgba32(217, 30, 24, 255);
     var b0 = GetUppermostLeftmostPointAsync(image);
