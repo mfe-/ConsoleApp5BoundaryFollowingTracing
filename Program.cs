@@ -11,29 +11,31 @@ Console.WriteLine("Hello, World!");
 
 
 
-var bytes = await File.ReadAllBytesAsync("Acer_Campestre_01.ab.jpg");
+//var bytes = await File.ReadAllBytesAsync("Acer_Campestre_01.ab.jpg");
+var bytes = await File.ReadAllBytesAsync("acer_pictum_03.ab.jpg");
 using var image = await Image.LoadAsync<Rgba32>(new MemoryStream(bytes));
 
 var contour = BoundaryProcessingTraceAsync(image);
-
 using var onlyCountourImage = new Image<Rgba32>(image.Width, image.Height);
-
 foreach (var point in contour)
 {
     onlyCountourImage[point.X, point.Y] = new Rgba32(217, 30, 24, 255);
 }
+
+var centerSignature = boundary2signature(contour);
+
+onlyCountourImage[centerSignature.Centroid.X, centerSignature.Centroid.Y] = new Rgba32(217, 30, 24, 255);
 
 onlyCountourImage.SaveAsPng("Acer_Campestre_01_BoundaryProcessingTrace.ab.png");
 
 
 IList<Point> BoundaryProcessingTraceAsync(Image<Rgba32> image)
 {
-    List<Point> boundaryPoints = new List<Point>();
+    List<Point> boundaryPoints = new();
     Point? initb0 = null;
     var b0 = GetUppermostLeftmostPointAsync(image);
     //Denote by c0 the west neighbor of b0[see Fig. 11.1(b)].
     //Clearly, c0 is always a background point.
-    if (image[b0.X - 1, b0.Y] is not { R: 0, G: 0, B: 0 }) throw new InvalidOperationException("Background expected!");
     var c0 = new Point(b0.X - 1, b0.Y);
     boundaryPoints.Add(c0);
     //Examine the 8 - neighbors of b0, starting at c0 and proceeding in a clockwise direction.
@@ -80,7 +82,7 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
 {
     Point point = c0;
     Point lastPoint = new Point();
-    while (image[point.X, point.Y] is { R: 0, G: 0, B: 0 })
+    while (image[point.X, point.Y] is { R: < 255, G: < 255, B: < 255 })
     {
         lastPoint = point;
         if (point.X < b0.X && point.Y == b0.Y)
@@ -139,4 +141,65 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
     }
 
     return new(point, lastPoint);
+}
+
+
+/// <summary>
+/// The input to the function is a list of boundary points and the ouput is a 1D vector representing the signature.
+/// </summary>
+/// <remarks>
+/// The shape in this particular context is expected to be a binary image
+/// Centroid Distance Function
+/// Since this shape signature is only dependent on the location of the centroid and the points on the 
+/// boundary, it is invariant to the translation of the shape and also the rotation
+/// </remarks>
+(IList<double> CentroidDistanceSignature, Point Centroid) boundary2signature(IList<Point> boundaryPoints)
+{
+    var c = CalculateCentroid(boundaryPoints);
+
+    //Centroid Distance Function
+    List<double> signature = new();
+    foreach (var point in boundaryPoints)
+    {
+        signature.Add(Math.Sqrt(Math.Pow(point.X - c.X, 2) + Math.Pow(point.Y - c.Y, 2)));
+    }
+    return (signature, c);
+}
+/// <summary>
+/// Calculates the Centroid of a closed set of boundary points
+/// </summary>
+/// <remarks>
+/// <seealso cref="https://en.wikipedia.org/wiki/Centroid#Of_a_polygon"/> 
+/// <seealso cref="https://www.math.uci.edu/icamp/summer/research_11/klinzmann/cdfd.pdf"/>
+/// </remarks>
+Point CalculateCentroid(IList<Point> boundaryPoints)
+{
+    //the area of the shape, A, is given by the following equation
+    var A = 0d;
+    var N = boundaryPoints.Count;
+    //0 and N index are the same point on our boundary
+    var sum = 0;
+    var cx = 0d;
+    var cy = 0d;
+    for (int i = 0; i < N - 1; i++)
+    {
+        var xi = boundaryPoints[i].X;
+        var xi1 = boundaryPoints[i + 1].X;
+
+        var yi1 = boundaryPoints[i + 1].Y;
+        var yi = boundaryPoints[i].Y;
+
+        cx = cx + (xi + xi1) * (xi * yi1 - xi1 * yi);
+        cy = cy + (yi + yi1) * (xi * yi1 - xi1 * yi);
+        sum = sum + (xi * yi1 - xi1 * yi);
+    }
+    //A=1/2 Sum_i^(N-1)(x_i*y_(i+1)-x_(i+1)*y_i)
+    A = sum / 2d;
+    cx = cx / (6 * A);
+    cy = cy / (6 * A);
+
+
+
+
+    return new((int)cx, (int)cy);
 }
