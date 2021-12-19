@@ -70,8 +70,11 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
         for (int x = 0; x < image.Width; x++)
         {
             var pixel = image[x, y];
-            if (pixel is Rgba32 { R: 255, G: 255, B: 255, A: 255 })
+            if (pixel is Rgba32 { R: >= 254, G: >= 254, B: >= 254 }
+             //check if pixel is "left alone" in the dark (quercus_crassifolia_16.ab.jpg x=265,y=23)
+             && !(image[x + 1, y] is Rgba32 { R: 0, G: 0, B: 0 } && image[x + 1, y - 1] is Rgba32 { R: 0, G: 0, B: 0 } && image[x, y - 1] is Rgba32 { R: 0, G: 0, B: 0 }))
             {
+
                 return new Point(x, y);
             }
         }
@@ -82,7 +85,7 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
 {
     Point point = c0;
     Point lastPoint = new Point();
-    while (image[point.X, point.Y] is { R: < 255, G: < 255, B: < 255 })
+    while (image[point.X, point.Y] is { R: < 254, G: < 254, B: < 254 })
     {
         lastPoint = point;
         if (point.X < b0.X && point.Y == b0.Y)
