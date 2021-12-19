@@ -1,33 +1,123 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using MathNet.Numerics.IntegralTransforms;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
 
 Console.WriteLine("Hello, World!");
 
+string rootleavesplantspeciesPath = @"C:\Users\marti\OneDrive\Dokumente\IPA\lab3\100 leaves plant species\data";
 
-
-
-//var bytes = await File.ReadAllBytesAsync("Acer_Campestre_01.ab.jpg");
-var bytes = await File.ReadAllBytesAsync("acer_pictum_03.ab.jpg");
-using var image = await Image.LoadAsync<Rgba32>(new MemoryStream(bytes));
-
-var contour = BoundaryProcessingTraceAsync(image);
-using var onlyCountourImage = new Image<Rgba32>(image.Width, image.Height);
-foreach (var point in contour)
+var directoryInfo = new DirectoryInfo(rootleavesplantspeciesPath);
+var plantspeciesDirectories = directoryInfo.GetDirectories();
+Dictionary<string, IList<ImageData>> plantspecies = new();
+int maxItems = 0;
+foreach (var plantspeciesDirectory in plantspeciesDirectories)
 {
-    onlyCountourImage[point.X, point.Y] = new Rgba32(217, 30, 24, 255);
+    plantspecies.Add(plantspeciesDirectory.Name, new List<ImageData>());
+    var images = plantspeciesDirectory.GetFiles();
+    foreach (var img in images)
+    {
+        System.Console.WriteLine($"Processing {img.FullName}");
+        var bytes = await File.ReadAllBytesAsync(img.FullName);
+        using var image = await Image.LoadAsync<Rgba32>(new MemoryStream(bytes));
+
+        var boundaryPoints = BoundaryProcessingTraceAsync(image);
+        var signature = boundary2signature(boundaryPoints);
+        ImageData imageData = new ImageData()
+        {
+            BoundaryPoints = boundaryPoints,
+            Signature = signature.CentroidDistanceSignature,
+            ImageName = img.Name
+        };
+        if (maxItems < imageData.Signature.Count)
+        {
+            maxItems = imageData.Signature.Count;
+        }
+        plantspecies[plantspeciesDirectory.Name].Add(imageData);
+    }
+}
+//angleichen
+foreach (var planttyp in plantspecies)
+{
+    foreach (var plantdata in plantspecies[planttyp.Key])
+    {
+        if (plantdata.Signature.Count < maxItems)
+        {
+            for (int i = plantdata.Signature.Count; i < maxItems; i++)
+            {
+                plantdata.Signature.Add(0);
+            }
+        }
+
+        plantdata.NormalizedFourierDescriptor = CalculateFourierDescriptor(plantdata.Signature);
+
+    }
+}
+do
+{
+    Console.WriteLine($"Enter a reference image, so we can look up similar images from {Environment.NewLine}{rootleavesplantspeciesPath}");
+    string? imgName = Console.ReadLine();
+
+    var searchresult = plantspecies.SelectMany(a => a.Value).Where(b => String.Equals(b.ImageName, imgName, StringComparison.OrdinalIgnoreCase));
+    if (searchresult.Any())
+    {
+        FindSimilarImages(plantspecies, searchresult.First().NormalizedFourierDescriptor);
+    }
+    else
+    {
+        Console.WriteLine("Nothing found. Enter an other image");
+    }
+
+} while (true);
+
+void FindSimilarImages(IDictionary<string, IList<ImageData>> plantSpeciesvaluePairs, IList<double> normalizedFourierDescriptor)
+{    
+    List<Tuple<string, double>> similarImages = new();
+
+    foreach (var keyValue in plantSpeciesvaluePairs)
+    {
+        Console.WriteLine($"Values for {keyValue.Key}");
+        foreach (var imageDatas in plantSpeciesvaluePairs[keyValue.Key])
+        {
+            double euclidiandistance = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                euclidiandistance = euclidiandistance + Math.Abs(imageDatas.NormalizedFourierDescriptor[i] - normalizedFourierDescriptor[i]);
+            }
+            Tuple<string, double> tuple = Tuple.Create(keyValue.Key, euclidiandistance);
+            similarImages.Add(tuple);
+        }
+    }
+
+    foreach (var tuple in similarImages.OrderBy(a => a.Item2))
+    {
+        Console.WriteLine($"{tuple.Item1,30} Distance {tuple.Item2}");
+    }
+
+    //return similarImages;
 }
 
-var centerSignature = boundary2signature(contour);
+IList<double> CalculateFourierDescriptor(IList<double> signature)
+{
+    List<double> magnitude = new List<double>();
+    var fourier = signature.Select(a => new Complex(a, 0)).ToArray();
 
-onlyCountourImage[centerSignature.Centroid.X, centerSignature.Centroid.Y] = new Rgba32(217, 30, 24, 255);
+    Fourier.Forward(fourier);
+    var dc = fourier[0];
+    for (int i = 0; i < fourier.Length; i++)
+    {
+        fourier[i] = fourier[i] / dc;
+        magnitude.Add(fourier[i].Magnitude);
+    }
 
-onlyCountourImage.SaveAsPng("Acer_Campestre_01_BoundaryProcessingTrace.ab.png");
-
+    return magnitude;
+}
 
 IList<Point> BoundaryProcessingTraceAsync(Image<Rgba32> image)
 {
@@ -70,8 +160,11 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
         for (int x = 0; x < image.Width; x++)
         {
             var pixel = image[x, y];
-            if (pixel is Rgba32 { R: 255, G: 255, B: 255, A: 255 })
+            if (pixel is Rgba32 { R: >= 254, G: >= 254, B: >= 254 }
+             //check if pixel is "left alone" in the dark (quercus_crassifolia_16.ab.jpg x=265,y=23)
+             && !(image[x + 1, y] is Rgba32 { R: 0, G: 0, B: 0 } && image[x + 1, y - 1] is Rgba32 { R: 0, G: 0, B: 0 } && image[x, y - 1] is Rgba32 { R: 0, G: 0, B: 0 }))
             {
+
                 return new Point(x, y);
             }
         }
@@ -82,7 +175,7 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
 {
     Point point = c0;
     Point lastPoint = new Point();
-    while (image[point.X, point.Y] is { R: < 255, G: < 255, B: < 255 })
+    while (image[point.X, point.Y] is { R: < 254, G: < 254, B: < 254 })
     {
         lastPoint = point;
         if (point.X < b0.X && point.Y == b0.Y)
