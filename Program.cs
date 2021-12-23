@@ -39,16 +39,15 @@ IList<Point> BoundaryProcessingTraceAsync(Image<Rgba32> image)
     var c0 = new Point(b0.X - 1, b0.Y);
     boundaryPoints.Add(c0);
     //Examine the 8 - neighbors of b0, starting at c0 and proceeding in a clockwise direction.
-    var b1c1 = ExamineNeighborsAsync(image, c0, b0);
     if (initb0 == null)
     {
         initb0 = new Point(b0.X, b0.Y);
     }
     //Let b=b0 and c=c0.
-    var b = b1c1.b1;
-    var c = b1c1.c1;
+    var b = b0;
+    var c = c0;
     boundaryPoints.Add(b);
-    while (!(b.X == initb0.Value.X && b.Y == initb0.Value.Y))
+    do
     {
         //Let the 8 - neighbors of b, starting at c and proceeding in a clockwise direction, 
         //be denoted by nn n 12 8 ,,,. … Find the first neighbor labeled 1 and denote it by nk.
@@ -58,6 +57,7 @@ IList<Point> BoundaryProcessingTraceAsync(Image<Rgba32> image)
         c = nkNK.c1;
         boundaryPoints.Add(b);
     }
+    while (!(b.X == initb0.Value.X && b.Y == initb0.Value.Y));
     //Repeat Steps 3 and 4 until b b = 0. The sequence of b points found when the 
     //algorithm stops is the set of ordered boundary points.
     return boundaryPoints;
@@ -71,7 +71,7 @@ static Point GetUppermostLeftmostPointAsync(Image<Rgba32> image)
         {
             var pixel = image[x, y];
             if (pixel is Rgba32 { R: >= 254, G: >= 254, B: >= 254 }
-             //check if pixel is "left alone" in the dark (quercus_crassifolia_16.ab.jpg x=265,y=23)
+             //check for a "single" pixel (quercus_crassifolia_16.ab.jpg x=265,y=23)
              && !(image[x + 1, y] is Rgba32 { R: 0, G: 0, B: 0 } && image[x + 1, y - 1] is Rgba32 { R: 0, G: 0, B: 0 } && image[x, y - 1] is Rgba32 { R: 0, G: 0, B: 0 }))
             {
 
