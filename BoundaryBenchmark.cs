@@ -4,7 +4,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ConsoleApp5BoundaryFollowingTracing;
 
-//[SimpleJob(RunStrategy.ColdStart, targetCount: 10_000)]
 [MinColumn, MaxColumn, MeanColumn, MedianColumn, MemoryDiagnoser]
 public class BoundaryBenchmark
 {

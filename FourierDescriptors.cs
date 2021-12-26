@@ -19,7 +19,7 @@ internal class FourierDescriptors
     /// Since this shape signature is only dependent on the location of the centroid and the points on the 
     /// boundary, it is invariant to the translation of the shape and also the rotation
     /// </remarks>
-    public static (IList<double> CentroidDistanceSignature, Point Centroid) boundary2signature(IList<Point> boundaryPoints)
+    public static (IList<double> CentroidDistanceSignature, Point Centroid) Boundary2CentroidSignature(IList<Point> boundaryPoints)
     {
         var c = CalculateCentroid(boundaryPoints);
 
@@ -64,10 +64,11 @@ internal class FourierDescriptors
         cx = cx / (6 * A);
         cy = cy / (6 * A);
 
-
-
-
         return new((int)cx, (int)cy);
+    }
+    public IList<double> ToFourier(IList<double> signature)
+    {
+        return null;
     }
 }
 
