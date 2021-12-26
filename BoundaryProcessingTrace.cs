@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp5BoundaryFollowingTracing;
 
-internal class BoundaryProcessingTracev1
+internal class BoundaryProcessingTrace
 {
 
     public static IList<Point> BoundaryProcessingTraceAsync(Image<Rgba32> image)

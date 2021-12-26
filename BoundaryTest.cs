@@ -35,7 +35,7 @@ namespace ConsoleApp5BoundaryFollowingTracing
         [Fact]
         public void DoesBoundaryProcessingTraceAsync_return_correct_positions()
         {
-            var list = BoundaryProcessingTracev1.BoundaryProcessingTraceAsync(_image);
+            var list = BoundaryProcessingTrace.BoundaryProcessingTraceAsync(_image);
             Assert.Equal(_expectedPoints, list);
         }
         [Fact]
