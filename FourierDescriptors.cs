@@ -1,7 +1,9 @@
-﻿using SixLabors.ImageSharp;
+﻿using MathNet.Numerics.IntegralTransforms;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -68,7 +70,26 @@ internal class FourierDescriptors
     }
     public IList<double> ToFourier(IList<double> signature)
     {
-        return null;
+        //var complexSignature = Vector<double>.Build.DenseOfEnumerable(signature).ToComplex();
+
+        List<double> magnitude = new List<double>();
+        var fourier = signature.Select(a => new Complex(a, 0)).ToArray();
+
+        Fourier.Forward(fourier);
+
+        //var vector = Vector<Complex>.Build.DenseOfArray(fourier);
+        //var scaled = vector.Multiply(1 / vector[0]);
+        //scaled.Norm(2);
+        //// sqrt(..^2 + )
+        //// sqrt(..^2) + sqrt(..^2) = |.|_1
+        var dc = fourier[0];
+        for (int i = 0; i < fourier.Length; i++)
+        {
+            fourier[i] = fourier[i] / dc;
+            magnitude.Add(fourier[i].Magnitude);
+        }
+
+        return magnitude;
     }
 }
 
