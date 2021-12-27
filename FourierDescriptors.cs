@@ -25,7 +25,7 @@ internal class FourierDescriptors
             var images = plantspeciesDirectory.GetFiles();
             foreach (var img in images)
             {
-                System.Console.WriteLine($"Processing {img.FullName}");
+                //System.Console.WriteLine($"Processing {img.FullName}");
                 var bytes = File.ReadAllBytes(img.FullName);
                 using var image = Image.Load<Rgba32>(new MemoryStream(bytes));
 
@@ -70,20 +70,19 @@ internal class FourierDescriptors
 
         foreach (var keyValue in plantSpeciesvaluePairs)
         {
-            Console.WriteLine($"Values for {keyValue.Key}");
             foreach (var imageDatas in plantSpeciesvaluePairs[keyValue.Key])
             {
                 double euclidiandistance = 0;
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < 6; i++)
                 {
                     euclidiandistance = euclidiandistance + Math.Abs(imageDatas.NormalizedFourierDescriptor[i] - normalizedFourierDescriptor[i]);
                 }
-                Tuple<string, double> tuple = Tuple.Create(keyValue.Key, euclidiandistance);
+                Tuple<string, double> tuple = Tuple.Create(imageDatas.ImageName, euclidiandistance);
                 similarImages.Add(tuple);
             }
         }
 
-        foreach (var tuple in similarImages.OrderBy(a => a.Item2))
+        foreach (var tuple in similarImages.OrderBy(a => a.Item2).Take(5))
         {
             Console.WriteLine($"{tuple.Item1,30} Distance {tuple.Item2}");
         }
